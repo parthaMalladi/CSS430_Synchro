@@ -68,6 +68,7 @@ public:
   
    void init();
    string int2string(int i);
-   void print(int person, string message);
+   void printCustomer(int person, string message);
+   void printBarber(int person, string message);
 };
 #endif
