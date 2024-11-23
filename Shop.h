@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 #include <queue>
-#include <unordered_map>
+#include <map>
 using namespace std;
 
 #define kDefaultNumChairs 3
@@ -21,7 +21,6 @@ public:
       in_service_(barbers, false),
       money_paid_(barbers, false),
       cust_drops_(0),
-      cond_customer_served_(barbers),
       cond_barber_paid_(barbers),
       cond_barber_sleeping_(barbers)
    { 
@@ -34,7 +33,6 @@ public:
       in_service_(kDefaultNumBarbers, false),
       money_paid_(kDefaultNumBarbers, false),
       cust_drops_(0),
-      cond_customer_served_(kDefaultNumBarbers),
       cond_barber_paid_(kDefaultNumBarbers),
       cond_barber_sleeping_(kDefaultNumBarbers)
    { 
@@ -58,11 +56,25 @@ public:
    vector<bool> money_paid_;                 // to see if customer in customer_in_chair_ vector has paid (match index)
    int cust_drops_;                          // # of customers dropped
 
+   struct Customer {
+      int myId;
+      int myBarber;
+      pthread_cond_t cond_customers_waiting_;
+      pthread_cond_t cond_customer_served_;
+
+      Customer(int id) {
+         myId = id;
+         myBarber = -1;                      // -1 to signify no barber assigned to the customer
+         pthread_cond_init(&cond_customers_waiting_, NULL);
+         pthread_cond_init(&cond_customer_served_, NULL);
+      }
+   };
+
+   map<int, Customer> customers;             // keeping track of customers via ID
+
    // Mutexes and condition variables to coordinate threads
    // mutex_ is used in conjuction with all conditional variables
    pthread_mutex_t mutex_;
-   pthread_cond_t cond_customers_waiting_;
-   vector<pthread_cond_t> cond_customer_served_;
    vector<pthread_cond_t> cond_barber_paid_;
    vector<pthread_cond_t> cond_barber_sleeping_;
   
