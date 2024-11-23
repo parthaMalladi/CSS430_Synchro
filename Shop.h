@@ -62,9 +62,10 @@ public:
       pthread_cond_t cond_customers_waiting_;
       pthread_cond_t cond_customer_served_;
 
-      Customer(int id) {
-         myId = id;
-         myBarber = -1;                      // -1 to signify no barber assigned to the customer
+      // default constructor
+      Customer() {
+         myId = 0;                            
+         myBarber = -1;
          pthread_cond_init(&cond_customers_waiting_, NULL);
          pthread_cond_init(&cond_customer_served_, NULL);
       }

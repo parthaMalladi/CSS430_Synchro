@@ -1,4 +1,3 @@
-
 #include "Shop.h"
 
 void Shop::init() 
@@ -46,7 +45,8 @@ int Shop::visitShop(int id)
    }
 
    // create a customer and put them into the map
-   customers[id] = Customer(id);
+   customers[id] = Customer();
+   customers[id].myId = id;
    int barber = -1;
 
    if (available_barbers_.empty()) {
@@ -68,6 +68,7 @@ int Shop::visitShop(int id)
    printCustomer(id, "moves to the service chair. # waiting seats available = " + int2string(max_waiting_cust_ - waiting_chairs_.size()));
    pthread_cond_signal(&cond_barber_sleeping_[barber]);
    pthread_mutex_unlock(&mutex_);
+   return barber;
 }
 
 void Shop::leaveShop(int id, int barber_id) 
@@ -90,7 +91,7 @@ void Shop::helloCustomer(int barber_id)
 {
    pthread_mutex_lock(&mutex_);
 
-   if (customer_in_chair_[barber_id] == 0) {
+   if (waiting_chairs_.empty() && customer_in_chair_[barber_id] == 0) {
       printBarber(barber_id, "sleeps because of no customers");
       available_barbers_.push(barber_id);
 
@@ -99,7 +100,7 @@ void Shop::helloCustomer(int barber_id)
       }
    }
 
-   while (in_service_[barber_id] == false) {
+   while (customer_in_chair_[barber_id] == 0) {
       pthread_cond_wait(&cond_barber_sleeping_[barber_id], &mutex_);
    }
    
@@ -115,6 +116,7 @@ void Shop::byeCustomer(int barber_id)
    in_service_[barber_id] = false;
    printBarber(barber_id, "says he's done with a hair-cut service for " + int2string(customer_in_chair_[barber_id]));
    money_paid_[barber_id] = false;
+   customers[client].myBarber = -1;
    pthread_cond_signal(&customers[client].cond_customer_served_);
 
    while (money_paid_[barber_id] == false) {
@@ -122,16 +124,19 @@ void Shop::byeCustomer(int barber_id)
    }
 
    customer_in_chair_[barber_id] = 0;
-   customers[client].myBarber = -1;
    customers.erase(client);
 
    printBarber(barber_id, "calls in another customer");
    if (!waiting_chairs_.empty()) {
       int newClient = waiting_chairs_.front();
-      customer_in_chair_[barber_id] = newClient;
-      customers[newClient] = Customer(newClient);
-      customers[newClient].myBarber = barber_id;
       waiting_chairs_.pop();
+
+      customers[newClient] = Customer();
+      customers[newClient].myId = newClient;
+      customers[newClient].myBarber = barber_id;
+      customer_in_chair_[barber_id] = newClient;
+      in_service_[barber_id] = true;
+      
       pthread_cond_signal(&customers[newClient].cond_customers_waiting_);
    }
 
